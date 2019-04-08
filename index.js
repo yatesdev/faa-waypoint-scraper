@@ -1,39 +1,14 @@
 const fs = require('fs');
 const axios = require('axios');
 const querystring = require('querystring');
-const url = 'https://www.faa.gov/air_traffic/flight_info/aeronav/aero_data/Loc_ID_Search/Fixes_Waypoints/';
+const PAGE_SIZE = 1000; // FAA endpoint caps at this
 
-
-async function getWaypoints() {
-  // Make dummy request to get the total rows
-  const totalRows = await makeRequest()
-    .then(rsp => {
-      return rsp.totalrows;
-    })
-  
-  // Endpoint caps at 1000 rows per request, concat each page response
-  let waypoints= [];
-  for(let i = 0; i <= totalRows; i = i + 1000) {
-    let page = await makeRequest(i, 1000)
-      .then((rsp) => {
-        return rsp.data;
-      });
-    waypoints = waypoints.concat(page);
-    console.log(`Grabbing waypoints... (${i}/${totalRows})`);
-  }
-
-  // parse of description field into a usable lat/long goes here
-
-  // export to file
-  fs.writeFileSync('./waypoints.json', JSON.stringify(waypoints));
-}
-
-async function makeRequest(start, length) {
+async function makeRequest(offset) {
   const data =  await axios.post('https://nfdc.faa.gov/nfdcApps/controllers/PublicDataController/getLidData',
     querystring.stringify({
       dataType: 'LIDFIXESWAYPOINTS',
-      start: start || 0,
-      length: length || 1,
+      start: offset || 0,
+      length: PAGE_SIZE,
       sortcolumn: 'fix_identifier',
       sortdir: 'asc',
     }))
@@ -43,4 +18,25 @@ async function makeRequest(start, length) {
   return data;
 }
 
-getWaypoints();
+async function getWaypoints() {
+  let waypoints = [];
+  let keepGoing = true;
+  let offset = 0;
+  while (keepGoing) {
+      let response = await makeRequest(offset);
+      console.log(`Grabbing waypoints... (${offset}/${response.totalrows})`);
+      await waypoints.push.apply(waypoints, response.data);
+      offset += PAGE_SIZE;
+      if (response.data.length < PAGE_SIZE) {
+          keepGoing = false;
+          return waypoints;
+      }
+  }
+}
+
+// Start
+getWaypoints()
+  .then(waypoints => {
+    console.log(waypoints);
+    fs.writeFileSync('./waypoints.json', JSON.stringify(waypoints));
+});
