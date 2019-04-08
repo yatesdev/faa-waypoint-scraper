@@ -1,0 +1,21 @@
+{
+  "name": "faa-scraper",
+  "version": "1.0.0",
+  "description": "faa-scraper",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://git.yatesathome.com/yates/faa-scraper.git"
+  },
+  "author": "Mike Yates <mike@yatesdev.com>",
+  "license": "ISC",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.3",
+    "puppeteer": "^1.14.0",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.4"
+  }
+}
