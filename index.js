@@ -2,6 +2,8 @@ const fs = require('fs');
 const axios = require('axios');
 const querystring = require('querystring');
 const PAGE_SIZE = 1000; // FAA endpoint caps at this
+const LATITUDE_REGEX = /(\d+)-(\d+)-([\d.]+)[NS]/g;
+const LONGITUDE_REGEX = /(\d+)-(\d+)-([\d.]+)[EW]/g;
 
 async function makeRequest(offset) {
   const data =  await axios.post('https://nfdc.faa.gov/nfdcApps/controllers/PublicDataController/getLidData',
@@ -34,9 +36,17 @@ async function getWaypoints() {
   }
 }
 
-// Start
-getWaypoints()
-  .then(waypoints => {
-    console.log(waypoints);
-    fs.writeFileSync('./waypoints.json', JSON.stringify(waypoints));
-});
+function parse(waypoints) {
+  return waypoints.map(waypoint => {
+    waypoint.latitude = waypoint.description.match(LATITUDE_REGEX)[0];
+    waypoint.longitude = waypoint.description.match(LONGITUDE_REGEX)[0];
+    return waypoint;
+  })
+}
+async function start() {
+  let waypoints = await getWaypoints();
+  let parsedWaypoints = parse(waypoints);
+  fs.writeFileSync('./waypoints.json', JSON.stringify(parsedWaypoints));
+}
+
+start();
